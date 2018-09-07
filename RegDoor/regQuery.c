@@ -3,7 +3,7 @@
 
 void main(){
     long lRet;
-    HKEY hKey;
+    HKEY hRootKey;
     TCHAR tchData[64];
 
     DWORD dwSize;

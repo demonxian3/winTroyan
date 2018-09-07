@@ -96,7 +96,7 @@ int simpleQueryServiceConfiguration(SC_HANDLE schService, char * serviceName){
 }
 
 void showUsageHelp(){
-    printf("  scm.exe usage:\n");
+    printf("scm.exe usage:\n");
     printf("================================\n");
     printf("  Author: Demon\n");
     printf("================================\n");
