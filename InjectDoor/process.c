@@ -12,7 +12,7 @@
 //      LONG pcPriClassBase;    #The base priority of any threads created by this process.
 //      CHAR szExeFile[MAX_PATH] #The name of the executable file for the process. 
 // }
-DWORD GetProcessId(char * processName){
+DWORD getPIDByName(char * processName){
     DWORD Pid = -1;
     PROCESSENTRY32 lPrs;
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -53,15 +53,47 @@ DWORD GetProcessId(char * processName){
     return Pid;
 }
 
+void listAllProcessInfo(){
+    
+    PROCESSENTRY32 lPrs;
+    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    ZeroMemory(&lPrs, sizeof(lPrs));
+    lPrs.dwSize = sizeof(lPrs);
+    Process32First(hSnap, &lPrs);
+    printf("pid\t\tppid\t\tname\n");
+    printf("-------------------------------------------\n");
+
+    while(1){
+        printf("%d\t\t%d\t\t%s\n", lPrs.th32ProcessID, lPrs.th32ParentProcessID, lPrs.szExeFile);
+        if(!Process32Next(hSnap, &lPrs)) break;
+    }
+}
+
+void showUsageHelp(){
+    printf("process.exe example:\n");
+    printf("===========================================\n");
+    printf("    list process:  process.exe -l \n");
+    printf("    special imgName: process.exe -n <process name>\n");
+}
+
 void main(int argc, char * argv[]){
     DWORD pid;
     char processName[200];
 
     if(argc < 2){
-        printf("usage: processId.exe <processName> \n");
+        showUsageHelp();
         return ;
     }
+
+    if(!stricmp(argv[1], "-l")){
+        listAllProcessInfo();
+        return ;
+    }
+
+    else if(!stricmp(argv[1], "-n")){
+        getPIDByName(argv[2]);
+        return;
+    }
     
-    strcpy(processName, argv[1]);
-    pid = GetProcessId(processName);
 }
