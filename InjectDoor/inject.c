@@ -49,7 +49,9 @@ BOOL InjectDLL(const char *DllFullPath, const DWORD dwRemoteProcessId){
     HANDLE hRemoteProcess, hRemoteThread;
     char * pszLibFileRemote;
     PTHREAD_START_ROUTINE pfnStartAddr;
-    //open debug mode to get high privilege
+
+    //open debug mode to get high privilege 
+    //It is not necessary to turn on debug mode.
     EnableDebugPriv();
 
     //open remote thread
@@ -136,8 +138,9 @@ void showUsageHelp(){
     printf("inject.exe example:\n");
     printf("============================================================\n");
     printf("    list process         :  inject.exe -l \n");
-    printf("    special process Name :  inject.exe -n <process name>\n");
-    printf("    special process ID   :  inject.exe -p <PID>\n");
+    printf("    special process Name :  inject.exe -n <process name> <dll name> \n");
+    printf("    special process ID   :  inject.exe -p <PID> <dll name> \n");
+    printf("    make sure dll file is exists below current directory! \n ");
 }
 
 DWORD string2dword(char * str){
@@ -168,29 +171,36 @@ DWORD string2dword(char * str){
 
 void main(int argc, char *argv[]){
 
+    DWORD pid;
+    char DllPath[MAX_PATH];
+
     if(argc < 2){
         showUsageHelp();
         return;
     }
 
-    else if(!stricmp(argv[1], "-l")){
+    if(!stricmp(argv[1], "-l")){
         listAllProcessInfo();
+        return;
     }
 
-    else if(!stricmp(argv[1], "-n")){
-        printf("pid: %d\n", getPIDByProcessName(argv[2]));
+    if(!argv[3]){
+        printf("please special DLL filename.dll first\n");
+        return;
+    }
+
+    GetCurrentDirectory(MAX_PATH, DllPath);
+    strcat(DllPath, "\\");
+    strcat(DllPath, argv[3]);
+
+    if(!stricmp(argv[1], "-n")){
+        pid = getPIDByProcessName(argv[2]);
+        printf("pid: %d\n", pid);
     }
 
     else if(!stricmp(argv[1], "-p")){
-        printf("pid: %lu\n", string2dword(argv[2]));
+        pid = string2dword(argv[2]);
     }
     
-    EnableDebugPriv(); 
-
-    //char myFILE[MAX_PATH];
-    //GetCurrentDirectory(MAX_PATH, myFILE);
-    ////get current path concat with myFILE
-    //strcat(myFILE, "\\door.dll"); 
-    ////notice!! GetProcessId is which process ID that you want to inject;
-    //InjectDLL(myFILE, GetProcessId());
+    InjectDLL(DllPath, pid);
 }
