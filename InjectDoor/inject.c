@@ -3,47 +3,37 @@
 #include <tlhelp32.h>
 #include <stdio.h>
 
-int EnableDebugPriv(){
+
+// function code from http://www.cnblogs.com/yifi/p/6527700.html
+BOOL EnableDebugPri32(){
     HANDLE hToken;
-    TOKEN_PRIVILEGES tp;
-    LUID luid;
+    TOKEN_PRIVILEGES pTP;
+    LUID uID;
 
-    //Open process token 
-    BOOL ret = OpenProcessToken(
-            GetCurrentProcess(),
-            TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
-            &hToken
-    );
-
-    if(!ret){
-        printf("cannot get the token\n");return 1;
-    }else{
-        printf("token success\n");
+    if (!OpenProcessToken(GetCurrentProcess(),TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,&hToken)){
+        printf("OpenProcessToken is Error\n");
+        return FALSE;
     }
 
-    //Gain process local ID
-    ret = LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &luid);
-
-    if(!ret){
-        printf("cannot get the luid\n"); return 1;
-    }else{
-        printf("luid success\n");
+    if (!LookupPrivilegeValue(NULL,SE_DEBUG_NAME,&uID)) {
+        printf("LookupPrivilegeValue is Error\n");
+        return FALSE;
     }
 
-    tp.PrivilegeCount = 1;
-    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-    tp.Privileges[0].Luid = luid;
+    pTP.PrivilegeCount = 1;
+    pTP.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+    pTP.Privileges[0].Luid = uID;
 
-    //adjust privilege
-    AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
-
-    if(GetLastError() != ERROR_SUCCESS){
-        printf("debug mode open success!!!\n");
+    if (!AdjustTokenPrivileges(hToken, FALSE, &pTP,sizeof(TOKEN_PRIVILEGES),NULL,NULL)){
+        printf("AdjuestTokenPrivileges is Error\n");
+        return  FALSE;
     }else{
-        printf("debug mode open failed\n");
+        printf("AdjuestTokenPrivileges is sucess!!!\n");
     }
-    return 0;
+
+    return TRUE;
 }
+
 
 BOOL InjectDLL(const char *DllFullPath, const DWORD dwRemoteProcessId){
     HANDLE hRemoteProcess, hRemoteThread;
@@ -52,7 +42,7 @@ BOOL InjectDLL(const char *DllFullPath, const DWORD dwRemoteProcessId){
 
     //open debug mode to get high privilege 
     //It is not necessary to turn on debug mode.
-    EnableDebugPriv();
+    EnableDebugPri32();
 
     //open remote thread
     hRemoteProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwRemoteProcessId);
@@ -202,5 +192,6 @@ void main(int argc, char *argv[]){
         pid = string2dword(argv[2]);
     }
     
+    //EnableDebugPri32();
     InjectDLL(DllPath, pid);
 }
