@@ -33,7 +33,7 @@ int main(){
 	char modlepath[256], syspath[256];
 	
 
-	//open key
+    //open key
     ret = RegOpenKey(HKEY_LOCAL_MACHINE, regname, &hkResult);
 
     //write key
