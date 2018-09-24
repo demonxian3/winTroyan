@@ -1,6 +1,5 @@
 #pragma comment(lib, "ws2_32")
 #include <winsock2.h>
-#include <stdio.h>
 
 #define LISTENPORT 999
 
