@@ -1,8 +1,9 @@
 // 如果编译报错, 请将 #include <winsock2.h> 添加到 <windows.h> 最开始里头
 // 在工程设置链接里头加 ws2_32.lib
 #pragma comment(lib, "ws2_32.lib")
-#include <windows.h>
+#include <winsock2.h>
 #define MasterPort 999
+#include <stdio.h>
 
 
 
@@ -23,6 +24,8 @@ main(){
 
     //获取CMD路径
     GetEnvironmentVariable("COMSPEC", szCMDPath, sizeof(szCMDPath));
+
+    printf("%s\n", szCMDPath);
 
     //加载ws2_32.dll
     WSAStartup(0x0202, &WSADa);  //0X0202 socket版本号，等价于 MAKEWORD(2,2);
